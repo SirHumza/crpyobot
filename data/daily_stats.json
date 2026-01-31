@@ -1,0 +1,8 @@
+{
+  "date": "2026-01-31",
+  "initialBalance": 1000,
+  "currentBalance": 940,
+  "tradesCount": 10,
+  "dailyPnL": -0.06000000000000005,
+  "isHalted": true
+}
