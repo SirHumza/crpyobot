@@ -12,24 +12,25 @@ async function main() {
     try {
         console.log('--- STARTING CRYPTO SENTINEL BOT ---');
 
-        // 1. Validate Configuration (moved to config module or implicitly handled)
-        // The original config validation is removed, assuming it's handled elsewhere or not needed in this new flow.
-        if (config.paper.enabled) {
-            logger.info('--- PAPER TRADING MODE ENABLED ---');
-            logger.info(`Starting Balance: ${config.paper.startingBalance} USDT`);
+        // 1. Validate Configuration
+        const configErrors = validateConfig();
+        if (configErrors.length > 0) {
+            console.error('Configuration Errors:');
+            configErrors.forEach(err => console.error(` - ${err}`));
+            process.exit(1);
         }
 
-        // Initialize Discord
-        logger.info('Initializing Discord integration...');
-        await discord.init();
-
-        // Initialize Binance
+        // 2. Initialize Exchange
         logger.info('Initializing Binance exchange...');
         await binance.init();
 
-        // Start Trading Engine
-        logger.info('Starting Trading Engine...');
-        await tradingEngine.start(); // Assuming 'engine' in the instruction refers to 'tradingEngine'
+        // 3. Initialize Discord
+        logger.info('Initializing Discord integration...');
+        await discord.init();
+
+        // 4. Start Trading Engine
+        logger.info('Starting trading engine...');
+        await tradingEngine.start();
 
         logger.info('Bot is fully initialized and running.');
 
@@ -38,11 +39,14 @@ async function main() {
         process.on('SIGTERM', () => shutdown('SIGTERM'));
 
     } catch (error) {
-        error: error.message,
-            stack: error.stack
-    });
-}
-process.exit(1);
+        console.error('FATAL SYSTEM ERROR:', error);
+        if (logger) {
+            logger.error('CRITICAL: Fatal system error occurred', {
+                error: error.message,
+                stack: error.stack
+            });
+        }
+        process.exit(1);
     }
 }
 

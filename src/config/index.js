@@ -110,32 +110,4 @@ export function validateConfig() {
   return errors;
 }
 
-/**
- * Update configuration at runtime
- */
-export function updateConfig(path, value) {
-  const parts = path.split('.');
-  let current = config;
-
-  for (let i = 0; i < parts.length - 1; i++) {
-    if (!current[parts[i]]) return false;
-    current = current[parts[i]];
-  }
-
-  const lastKey = parts[parts.length - 1];
-  if (current[lastKey] !== undefined) {
-    // Parse value type based on existing value
-    const type = typeof current[lastKey];
-    if (type === 'number') {
-      current[lastKey] = parseFloat(value);
-    } else if (type === 'boolean') {
-      current[lastKey] = value === 'true';
-    } else {
-      current[lastKey] = value;
-    }
-    return true;
-  }
-  return false;
-}
-
 export default config;
