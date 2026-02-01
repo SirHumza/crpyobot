@@ -40,6 +40,7 @@ export const config = {
     baseCurrency: process.env.BASE_CURRENCY || 'USDT',
     pairs: (process.env.TRADING_PAIRS || 'BTCUSDT,ETHUSDT').split(','),
     coreCoins: (process.env.CORE_COINS || 'BTCUSDT,ETHUSDT').split(','),
+    scanInterval: parseInt(process.env.SCAN_INTERVAL_MS) || 1800000,
   },
 
   // Allocation (60/40 default)

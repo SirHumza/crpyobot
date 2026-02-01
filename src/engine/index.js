@@ -34,8 +34,8 @@ class TradingEngine {
             try {
                 await this.tick();
                 await this.manageTrailingStops();
-                // Wait 30 minutes between full scans (1,800,000 ms)
-                await new Promise(resolve => setTimeout(resolve, 1800000));
+                // Dynamic scan interval (default 30m)
+                await new Promise(resolve => setTimeout(resolve, config.trading.scanInterval));
             } catch (error) {
                 logger.error('Error in main tick loop', { error: error.message });
                 await new Promise(resolve => setTimeout(resolve, 60000));
@@ -128,8 +128,9 @@ class TradingEngine {
 
                 for (const news of newsItems) {
                     const analysis = await sentimentAnalyzer.analyzeNews(news, pair);
+                    const minConfidence = config.confidence.minToTrade;
 
-                    if (analysis && analysis.suggested_action === 'BUY' && analysis.verdict === 'BULLISH' && analysis.confidence > 80) {
+                    if (analysis && analysis.suggested_action === 'BUY' && analysis.verdict === 'BULLISH' && analysis.confidence >= minConfidence) {
                         await this.executeSatelliteTrade(pair, analysis);
                         break; // One trade per pair per scan
                     }
