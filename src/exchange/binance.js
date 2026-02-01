@@ -219,7 +219,13 @@ class BinanceExchange {
             await this.updateBalances();
             return order;
         } catch (error) {
-            logger.error('Market BUY failed', { symbol, quantity, error: error.message });
+            logger.error('Market BUY failed', {
+                symbol,
+                quantity,
+                code: error.code,
+                msg: error.message,
+                fullError: JSON.stringify(error)
+            });
             throw error;
         }
     }
