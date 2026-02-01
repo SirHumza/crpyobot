@@ -57,8 +57,11 @@ class TradingEngine {
 
         // 2. Global Market Sentiment Check (Panic Breaker)
         const marketSentiment = await this.getMarketSentiment();
-        if (marketSentiment < 20) {
-            logger.warn('Market is in EXTREME FEAR mode. Skipping satellite signals for safety.', { sentiment: marketSentiment });
+        if (marketSentiment < config.risk.minSentiment) {
+            logger.warn('Market sentiment below threshold. Skipping satellite signals for safety.', {
+                sentiment: marketSentiment,
+                threshold: config.risk.minSentiment
+            });
             return;
         }
 

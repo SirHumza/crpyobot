@@ -60,6 +60,7 @@ export const config = {
     minOrderSizeUsdt: parseFloat(process.env.MIN_ORDER_SIZE_USDT) || 10,
     maxOpenSatelliteTrades: parseInt(process.env.MAX_OPEN_SATELLITE_TRADES) || 2,
     minBalanceToTrade: parseFloat(process.env.MIN_BALANCE_TO_TRADE) || 15,
+    minSentiment: parseInt(process.env.MIN_MARKET_SENTIMENT) || 20,
   },
 
   // LLM Confidence Thresholds
