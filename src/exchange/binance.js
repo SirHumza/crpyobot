@@ -14,6 +14,7 @@ class BinanceExchange {
         this.exchangeInfo = null;
         this.balances = {};
         this.openOrders = [];
+        this.paperBalanceInitialized = false;
     }
 
     /**
@@ -58,22 +59,24 @@ class BinanceExchange {
     async updateBalances() {
         // PAPER TRADING OVERRIDE
         if (config.paper.enabled) {
-            this.balances = {
-                'USDT': {
-                    free: config.paper.startingBalance,
-                    locked: 0,
-                    total: config.paper.startingBalance
+            if (!this.paperBalanceInitialized) {
+                this.balances = {
+                    'USDT': {
+                        free: config.paper.startingBalance,
+                        locked: 0,
+                        total: config.paper.startingBalance
+                    }
+                };
+
+                for (const pair of config.trading.pairs) {
+                    const asset = pair.replace('USDT', '');
+                    if (!this.balances[asset]) {
+                        this.balances[asset] = { free: 0, locked: 0, total: 0 };
+                    }
                 }
-            };
-
-            // Also mock some coin headers so it doesn't crash on "unknown asset"
-            // In a real paper sim we'd track these, but for now fixed USDT is safer to start
-            for (const pair of config.trading.pairs) {
-                const asset = pair.replace('USDT', '');
-                this.balances[asset] = { free: 0, locked: 0, total: 0 };
+                this.paperBalanceInitialized = true;
+                logger.info('Initialized PAPER TRADING balance', { balance: config.paper.startingBalance });
             }
-
-            logger.info('Initialized PAPER TRADING balance', { balance: config.paper.startingBalance });
             return this.balances;
         }
 
@@ -208,6 +211,30 @@ class BinanceExchange {
 
             logger.info('Placing market BUY order', { symbol, quantity: roundedQty });
 
+            if (config.paper.enabled) {
+                const price = await this.getPrice(symbol);
+                const cost = roundedQty * price;
+
+                if (this.balances['USDT'].free < cost) {
+                    throw new Error(`Insufficient paper balance. Need ${cost}, have ${this.balances['USDT'].free}`);
+                }
+
+                this.balances['USDT'].free -= cost;
+                this.balances['USDT'].total -= cost;
+
+                const asset = symbol.replace('USDT', '');
+                this.balances[asset].free += roundedQty;
+                this.balances[asset].total += roundedQty;
+
+                logger.info('PAPER Market BUY filled', { symbol, price, quantity: roundedQty, cost });
+                return {
+                    orderId: 'paper-' + Date.now(),
+                    executedQty: roundedQty.toString(),
+                    cummulativeQuoteQty: cost.toString(),
+                    status: 'FILLED'
+                };
+            }
+
             const order = await this.client.order({
                 symbol,
                 side: 'BUY',
@@ -238,6 +265,29 @@ class BinanceExchange {
             const roundedQty = this.roundQuantity(symbol, quantity);
 
             logger.info('Placing market SELL order', { symbol, quantity: roundedQty });
+
+            if (config.paper.enabled) {
+                const asset = symbol.replace('USDT', '');
+                if (this.balances[asset].free < roundedQty) {
+                    throw new Error(`Insufficient paper assets. Need ${roundedQty}, have ${this.balances[asset].free}`);
+                }
+
+                const price = await this.getPrice(symbol);
+                const revenue = roundedQty * price;
+
+                this.balances[asset].free -= roundedQty;
+                this.balances[asset].total -= roundedQty;
+                this.balances['USDT'].free += revenue;
+                this.balances['USDT'].total += revenue;
+
+                logger.info('PAPER Market SELL filled', { symbol, price, quantity: roundedQty, revenue });
+                return {
+                    orderId: 'paper-sell-' + Date.now(),
+                    executedQty: roundedQty.toString(),
+                    cummulativeQuoteQty: revenue.toString(),
+                    status: 'FILLED'
+                };
+            }
 
             const order = await this.client.order({
                 symbol,
