@@ -56,6 +56,27 @@ class BinanceExchange {
      * Update account balances
      */
     async updateBalances() {
+        // PAPER TRADING OVERRIDE
+        if (config.paper.enabled) {
+            this.balances = {
+                'USDT': {
+                    free: config.paper.startingBalance,
+                    locked: 0,
+                    total: config.paper.startingBalance
+                }
+            };
+
+            // Also mock some coin headers so it doesn't crash on "unknown asset"
+            // In a real paper sim we'd track these, but for now fixed USDT is safer to start
+            for (const pair of config.trading.pairs) {
+                const asset = pair.replace('USDT', '');
+                this.balances[asset] = { free: 0, locked: 0, total: 0 };
+            }
+
+            logger.info('Initialized PAPER TRADING balance', { balance: config.paper.startingBalance });
+            return this.balances;
+        }
+
         try {
             const account = await this.client.accountInfo();
             this.balances = {};
