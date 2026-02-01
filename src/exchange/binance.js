@@ -57,6 +57,21 @@ class BinanceExchange {
      */
     async updateBalances() {
         try {
+            // PAPER TRADING OVERRIDE
+            if (config.paper.enabled) {
+                // If we already have a paper balance tracking, keep using it
+                // Otherwise initialize with starting balance
+                if (!this.balances['USDT']) {
+                    this.balances['USDT'] = {
+                        free: config.paper.startingBalance,
+                        locked: 0,
+                        total: config.paper.startingBalance
+                    };
+                    logger.info('Initialized PAPER TRADING balance', { balance: config.paper.startingBalance });
+                }
+                return this.balances;
+            }
+
             const account = await this.client.accountInfo();
             this.balances = {};
 
